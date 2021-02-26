@@ -20,6 +20,7 @@ class ContourInputOutput:
         self.__SetCountourData()
 
     def __ReadFile(self):
+        # This reads the countour file
 
     def __RoundCoords(self):
 

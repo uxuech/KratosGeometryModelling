@@ -24,6 +24,7 @@ class ContourInputOutput:
     def __RoundCoords(self):
 
     def __MoveToOrigin(self):
+        # new branch test
 
     def __SetBoundariesInformation(self):
 

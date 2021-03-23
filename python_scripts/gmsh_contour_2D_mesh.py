@@ -10,6 +10,9 @@ nodesIds6=[]
             BeginNodeId=[]
             EndNodeId=[]
             newlines=MergeRepeatedPoint(merged_polylines_dict[bound],tolerance)
+
+from contour_input_output import ContourInputOutput
+
 class GmshContour2dMeshGenerator():
     def __init__(self, BoundaryNames,Polylines,mesh_size="5",outputfilename):
         print("constructor")
@@ -18,7 +21,7 @@ class GmshContour2dMeshGenerator():
         self.mesh_size=mesh_size
         self.outputfilename=outputfilename
 
-    def GmshGeometryGeneration(self):
+    def __GmshGeometryGeneration(self):
         nodesIds=[]
         linesIdsFloor=[]
         for bound in self._boundary_name:
@@ -45,12 +48,12 @@ class GmshContour2dMeshGenerator():
         physicalgroupname.append(g)
         gmsh.model.setPhysicalName(2, g, "floorsurf")       
 
-    def Gmsh2dMesh(self):
+    def __Gmsh2dMesh(self):
         # TODO: THIS FUNCTION SHOULD BE GENERAL FOR 2D 3D AND A NEW SIZE SHOULD BE ASKED HOW CAN WE RELEATE??
         gmsh.option.setNumber('Mesh.MeshSizeMin',15)
         gmsh.option.setNumber('Mesh.MeshSizeMax', 15)
         gmsh.model.mesh.generate(2)
-    def GmshMdpaToKratos(self):
+    def __GmshMdpaToKratos(self):
         # TODO: with different files typs vtk mdpa
         gmsh.write(self.outputfilename)
         meshing=meshio.read(self.outputfilename)
@@ -66,3 +69,8 @@ class GmshContour2dMeshGenerator():
             edited_mdpa.write(line)
         toedit_mdpa.close()
         edited_mdpa.close()
+    def Execute():
+        self.__GmshGeometryGeneration()
+        self.__Gmsh2dMesh()
+        self.__GmshMdpaToKratos()
+

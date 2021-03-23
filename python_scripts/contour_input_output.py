@@ -1,14 +1,17 @@
 
 class ContourInputOutput:
 
-    def __init__(self, file_name, file_format=".shp", round_coords=True, move_to_origin=True):
-        print("constructor")
-        self._file_name = file_name
-        self._file_format = file_format
-        self._round_coords = round_coords
-        self._move_to_origin = move_to_origin
-
+    def __init__(self, settings):
+       self._file_name = settings["file_name"].GetString()
+       self._round_coords=settings["round_coordinates"].GetBool()
+       self._move_to_origin=settings["move_to_origen"].GetBool()
+       self._file_format=settings["file_format"].GetString()
+       self._tolerance_repeated_points["tolerance_repeated_points"].GetDouble()
+       self.min_value_x
+    
+    
     def Execute(self):
+
         self.__ReadFile
         if self._round_coords:
             __RoundCoords()
@@ -22,12 +25,15 @@ class ContourInputOutput:
         self.__ReorderBoundaries()
         self.__MergeInnerPoints()
         self.__SetCountourData()
+        self.__ContourBoundingBox()
+
 
     def __ReadFile(self):
         # From external file the geometry is read. The code is prepared for .shp files.  TODO:  implementation for other files types. 
         sf = shapefile.Reader(self._file_name)
         self.extracted_atributes = sf.shapeRecords()
         self.extracted_coordinates= sf.shapes()
+        print("Shapefile is read")
 
 
     def __RoundCoords(self):
@@ -42,10 +48,11 @@ class ContourInputOutput:
                     each_component=round(each_component,3)
                     rounded_coordinates_point.append(each_component)
                 self.rounded_coordinates.append(RoundedCoordPoint)
-            self.contour_shape_points_rounded.append(Rounded_coordinates) 
+            self.contour_shape_points_rounded.append(Rounded_coordinates)
+        print("Rounded Cordinate processes done") 
 
 
-    def ContourBoundingBox(self):
+    def __ContourBoundingBox(self):
         # Getting the Contour bounding box in order to translate to an easier coordinates. Maybe this function can be useful for other propose from an external code. 
         x_cordinates=[]
         y_cordinates=[]
@@ -57,28 +64,32 @@ class ContourInputOutput:
         self.min_value_x=min(x_cordinates)
         self.max_value_y=max(y_cordinates)
         self.min_value_y=min(y_cordinates)
-        self.contour_bounding_box=[[self.max_value_x,self.max_value_y],[ self.min_value_x,self.min_value_y]]
+        self.contour_bounding_box=[[self.max_value_x,self.max_value_y],[self.min_value_x,self.min_value_y]]
+        print("Contour Bonding Box done") 
         return self.contour_bounding_box
 
     def __MoveToOrigin(self):
         # The original coordinates are transformed to origin (0,0) in order to avoid issues. TODO: After all meshing process it should be implemented the option to remove coordinates(original coordinates )
         self.moved_total_coordinates=[]
+        x=self.min_value_x
         for polyline in self.contour_shape_points_rounded:
             polyline_with_coordinates_moved=[]
             for polyline_points in polyline:
-                x=polyline_points[0]-self.min_value_x
-                y=polyline_points[1]-self.min_value_y
+                x=polyline_points[0]- self.min_value_x
+                y=polyline_points[1]- self.min_value_y
                 polyline_with_coordinates_moved.append([x,y])
             self.moved_total_coordinates.append(polyline_with_coordinates_moved)
+        print("Coordinates Moved to origin ") 
+
 
     def __AssigningAttributeToPolyline (self):
         self.contour_polylines_and_attributes=[]
         self.complete_extracted_atributes_list=[]
         for i in range(len(self.extracted_atributes)):
             self.complete_extracted_atributes=self.extracted_atributes.record[0]
-            self.contour_polylines_and_attributes.append([CompleteExtractedAtributes RoundedTotalCoordinates[i]])
+            self.contour_polylines_and_attributes.append([CompleteExtractedAtributes, RoundedTotalCoordinates[i]])
             self.complete_extracted_atributes_list.append(self.complete_extracted_atributes)
-
+        print("Assigning Attribute To Polyline done")
     def __ContourBoundaryName(self):
         self.contour_boundary_name=[]
         self.complete_extracted_atributes_list.sort()
@@ -86,6 +97,7 @@ class ContourInputOutput:
             if polyline_attribute not in self.contour_boundary_name: 
                 self.contour_boundary_name.append(polyline_attribute) 
         return self.contour_boundary_name
+        print("Contour boundary name done ")
 
 #TODO: DO WE REALLY NEED THIS FUNCTION IN CLEAN CODE
     def CreateBoundariesTypeDictionary(AllPolylinesDatabase, BoundaryTypesList):
@@ -96,7 +108,7 @@ class ContourInputOutput:
                 if polyline.GetColor() == boundary_type:
                     boundary_type_polys.append(polyline)
             boundary_type_dict[boundary_type] = boundary_type_polys
-
+        print( CreateBoundaries)
         return boundary_type_dict    
     
     def __IdentifyRepeteadedPoints(self):
@@ -112,9 +124,9 @@ class ContourInputOutput:
         self.polylines_data_base=CreateBoundariesTypeDictionary(self.geometry_data_base,self.contour_boundary_name)
         # Check if the current poliline endpoints are repeated in other polylines with the diiferent attribute.
         for polyline in self.geometry_data_base:
-        polyline_attribute = polyline.GetColor()
-        is_begin_repeated = CheckPointInAttributes(polyline_data.GetBeginPoint(), polyline_attribute, self.geometry_data_base, check_in_colors_list)
-        is_end_repeated = CheckPointInAttributes(polyline_data.GetEndPoint(), polyline_attribute,self.geometry_data_base,check_in_colors_list)
+            polyline_attribute = polyline.GetColor()
+            is_begin_repeated = CheckPointInAttributes(polyline_data.GetBeginPoint(), polyline_attribute, self.geometry_data_base, check_in_colors_list)
+            is_end_repeated = CheckPointInAttributes(polyline_data.GetEndPoint(), polyline_attribute,self.geometry_data_base,check_in_colors_list)
             if len(is_begin_repeated) > 0:
                 self.self.repeated_points_in_geometry(is_begin_repeated)
             if len(is_end_repeated) > 0:
@@ -182,7 +194,14 @@ class ContourInputOutput:
                                     first_polyline = aux_polyline
                                     aux_polyline_list.remove(first_polyline)
                                 break
-        
+                    
+    def PolylinesRepeatedPoint(Polylines,tolerance)  
+        Bound=self.__ContourBoundaryName()
+        self.polyline_gmsh_format=MergeRepeatedPoint(self.merged_polylines_dict[bound],tolerance)
+
+    def GetPolylinesGmshContourDic(self):
+        return self.self.polyline_gmsh_format
+
     # def __SetBoundariesInformation(self):
         
     #     self.polylines_ordered_according_attribute = sorted(self.contour_polylines_and_attributes, key=lambda x: x[0])

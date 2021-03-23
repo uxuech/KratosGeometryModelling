@@ -28,9 +28,8 @@ class Gmsh3dMeshTerrain():
             connectivities_by_boundary[bound]=connectivities
         return connectivities_by_boundary
 
-    
 
-    def __Gmsh3dDiscreteMesh(self)
+    def __Gmsh3dDiscreteMesh(self):
     ConectivitiesByBoundary=SkinTriangulationGmsh(BoundaryNodesIds_Top,BoundaryNodesIds_newfloor,BoundaryDictionary)
 
         FloorPoints=NewFloor_SurfaceDataBase.ExternalPointEntity()
@@ -107,31 +106,38 @@ class Gmsh3dMeshTerrain():
 
 
     def __ExportingMeshToMdpa(self):
-    gmsh.write("VolumeMeshUrederra.vtk")
-    meshing=meshio.read("VolumeMeshUrederra.vtk")
-    meshio.mdpa.write("test_volume.mdpa", meshing)
-    gmsh.clear()
-    gmsh.finalize()
-    toedit_mdpa=open("test_volume.mdpa","r")
-    edited_mdpa = open("test_volume_good.mdpa", 'w')
-    checkWords = ("Begin Elements Triangle3D3","Begin Elements Tetrahedra3D4","Begin ElementalData CellEntityIds","End ElementalData CellEntityIds")
-    repWords = ("Begin Elements Element3D3N","Begin Elements Element3D4N","Begin ElementalData ACTIVATION_LEVEL","End ElementalData")
+        gmsh.write("VolumeMeshUrederra.vtk")
+        meshing=meshio.read("VolumeMeshUrederra.vtk")
+        meshio.mdpa.write("test_volume.mdpa", meshing)
+        gmsh.clear()
+        gmsh.finalize()
+        toedit_mdpa=open("test_volume.mdpa","r")
+        edited_mdpa = open("test_volume_good.mdpa", 'w')
+        checkWords = ("Begin Elements Triangle3D3","Begin Elements Tetrahedra3D4","Begin ElementalData CellEntityIds","End ElementalData CellEntityIds")
+        repWords = ("Begin Elements Element3D3N","Begin Elements Element3D4N","Begin ElementalData ACTIVATION_LEVEL","End ElementalData")
 
-    for line in toedit_mdpa:
-        for check, rep in zip(checkWords, repWords):
-            line = line.replace(check, rep)
-        edited_mdpa.write(line)
-    toedit_mdpa.close()
-    edited_mdpa.close()
-    import KratosMultiphysics as KM
-    import KratosMultiphysics.KratosUnittest as KratosUnittest
-    #from KratosMultiphysics.CoSimulationApplication.utilities import model_part_utilities
-    from KratosMultiphysics.gid_output_process import GiDOutputProcess
-    import KratosMultiphysics.MappingApplication as KratosMapping
-    from KratosMultiphysics.MappingApplication import python_mapper_factory
-    from KratosMultiphysics.MeshMovingApplication.mesh_moving_analysis import MeshMovingAnalysis
-    import meshio
-    import numpy as np
-    # RELACIONAR LAS BOUNDARIES USUARIO Y LAS ASIGNADAS POR EL GMSH ( EXTRAER LA INFORMACION DEL OTRO SCRIPT --DE MOMENTO AUXILIAR ESTA LISTA DE LISTAS)
-    BoundariesSurface=Boundaries[2]
-    Body=Boundaries[3]
+        for line in toedit_mdpa:
+            for check, rep in zip(checkWords, repWords):
+                line = line.replace(check, rep)
+            edited_mdpa.write(line)
+        toedit_mdpa.close()
+        edited_mdpa.close()
+        import KratosMultiphysics as KM
+        import KratosMultiphysics.KratosUnittest as KratosUnittest
+        #from KratosMultiphysics.CoSimulationApplication.utilities import model_part_utilities
+        from KratosMultiphysics.gid_output_process import GiDOutputProcess
+        import KratosMultiphysics.MappingApplication as KratosMapping
+        from KratosMultiphysics.MappingApplication import python_mapper_factory
+        from KratosMultiphysics.MeshMovingApplication.mesh_moving_analysis import MeshMovingAnalysis
+        import meshio
+        import numpy as np
+        # RELACIONAR LAS BOUNDARIES USUARIO Y LAS ASIGNADAS POR EL GMSH ( EXTRAER LA INFORMACION DEL OTRO SCRIPT --DE MOMENTO AUXILIAR ESTA LISTA DE LISTAS)
+        BoundariesSurface=Boundaries[2]
+        Body=Boundaries[3]
+
+    def Execute(self):
+        self.__Gmsh3dDiscreteMesh()
+        self.__ExportingMeshToMdpa()
+        self.__AuxiliarySkinTriangulationGmsh()
+        self.__ReadingKratosTerrainMeshGmsh()
+        self.__TopSurfaceDefinition()

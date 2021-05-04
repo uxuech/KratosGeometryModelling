@@ -1,4 +1,7 @@
-
+import shapefile    
+import gmsh
+import sys
+import meshio
 class ContourInputOutput:
 
     def __init__(self, settings):
@@ -6,53 +9,56 @@ class ContourInputOutput:
        self._round_coords=settings["round_coordinates"].GetBool()
        self._move_to_origin=settings["move_to_origen"].GetBool()
        self._file_format=settings["file_format"].GetString()
-       self._tolerance_repeated_points["tolerance_repeated_points"].GetDouble()
-       self.min_value_x
+       self._tolerance_repeated_points=settings["tolerance_repeated_points"].GetDouble()
+       
+    
     
     
     def Execute(self):
 
-        self.__ReadFile
+        self.__ReadFile()
         if self._round_coords:
-            __RoundCoords()
+            self.__RoundCoords()
         else:
             warning_msg="WARNING: Contour could not be completly closed.Please be sure that the polygone is closed"
             print(warning_msg)
         if self._move_to_origin:
-            __MoveToOrigin()
-        self.__SetBoundariesInformation()
-        self.__CollapseEndPoints()
-        self.__ReorderBoundaries()
-        self.__MergeInnerPoints()
-        self.__SetCountourData()
-        self.__ContourBoundingBox()
+            self.ContourBoundingBox()
+            self.__MoveToOrigin()
+        self.__AssigningAttributeToPolyline()
+        self.__ContourBoundaryName()
+        self.__IdentifyRepeteadedPoints()
+        self.__OrderPointsandPolylinesByAttibute()
+        self.__PolylinesGmshContourDic()
+        # self.__PolylineRepeatedPoint()
+        # self.__GetPolylinesGmshContourDic()
 
 
     def __ReadFile(self):
         # From external file the geometry is read. The code is prepared for .shp files.  TODO:  implementation for other files types. 
         sf = shapefile.Reader(self._file_name)
         self.extracted_atributes = sf.shapeRecords()
+        
         self.extracted_coordinates= sf.shapes()
         print("Shapefile is read")
-
 
     def __RoundCoords(self):
         # Coordinates of study contour area are rounded in order to avoid issues with unclosed polygones.
         self.contour_shape_points_rounded=[]
         for i in range(len(self.extracted_coordinates)):
-            self.total_coordinates=extracted_coordinates[i].points
+            self.total_coordinates=self.extracted_coordinates[i].points
             self.rounded_coordinates=[]
             for coordinates in self.total_coordinates:
                 rounded_coordinates_point=[]
                 for each_component in coordinates:
                     each_component=round(each_component,3)
                     rounded_coordinates_point.append(each_component)
-                self.rounded_coordinates.append(RoundedCoordPoint)
-            self.contour_shape_points_rounded.append(Rounded_coordinates)
+                self.rounded_coordinates.append(rounded_coordinates_point)
+            self.contour_shape_points_rounded.append(self.rounded_coordinates)
         print("Rounded Cordinate processes done") 
 
 
-    def __ContourBoundingBox(self):
+    def ContourBoundingBox(self):
         # Getting the Contour bounding box in order to translate to an easier coordinates. Maybe this function can be useful for other propose from an external code. 
         x_cordinates=[]
         y_cordinates=[]
@@ -60,6 +66,7 @@ class ContourInputOutput:
             for polyline_points in polyline:
                 x_cordinates.append(polyline_points[0])
                 y_cordinates.append(polyline_points[1])
+
         self.max_value_x=max(x_cordinates)
         self.min_value_x=min(x_cordinates)
         self.max_value_y=max(y_cordinates)
@@ -71,13 +78,14 @@ class ContourInputOutput:
     def __MoveToOrigin(self):
         # The original coordinates are transformed to origin (0,0) in order to avoid issues. TODO: After all meshing process it should be implemented the option to remove coordinates(original coordinates )
         self.moved_total_coordinates=[]
-        x=self.min_value_x
         for polyline in self.contour_shape_points_rounded:
             polyline_with_coordinates_moved=[]
+
             for polyline_points in polyline:
                 x=polyline_points[0]- self.min_value_x
                 y=polyline_points[1]- self.min_value_y
                 polyline_with_coordinates_moved.append([x,y])
+
             self.moved_total_coordinates.append(polyline_with_coordinates_moved)
         print("Coordinates Moved to origin ") 
 
@@ -86,21 +94,28 @@ class ContourInputOutput:
         self.contour_polylines_and_attributes=[]
         self.complete_extracted_atributes_list=[]
         for i in range(len(self.extracted_atributes)):
-            self.complete_extracted_atributes=self.extracted_atributes.record[0]
-            self.contour_polylines_and_attributes.append([CompleteExtractedAtributes, RoundedTotalCoordinates[i]])
+            self.complete_extracted_atributes=self.extracted_atributes[i].record[0]
+            self.contour_polylines_and_attributes.append([self.complete_extracted_atributes, self.moved_total_coordinates[i]])
             self.complete_extracted_atributes_list.append(self.complete_extracted_atributes)
         print("Assigning Attribute To Polyline done")
+
+
+
     def __ContourBoundaryName(self):
         self.contour_boundary_name=[]
         self.complete_extracted_atributes_list.sort()
         for polyline_attribute in self.complete_extracted_atributes_list: 
             if polyline_attribute not in self.contour_boundary_name: 
-                self.contour_boundary_name.append(polyline_attribute) 
-        return self.contour_boundary_name
+                self.contour_boundary_name.append(polyline_attribute)
         print("Contour boundary name done ")
+        return self.contour_boundary_name
+        
+
+    def GetContourBoundaryName(self):
+        return  self.contour_boundary_name
 
 #TODO: DO WE REALLY NEED THIS FUNCTION IN CLEAN CODE
-    def CreateBoundariesTypeDictionary(AllPolylinesDatabase, BoundaryTypesList):
+    def CreateBoundariesTypeDictionary(self,AllPolylinesDatabase, BoundaryTypesList):
         boundary_type_dict = {}
         for boundary_type in BoundaryTypesList:
             boundary_type_polys = []
@@ -108,12 +123,42 @@ class ContourInputOutput:
                 if polyline.GetColor() == boundary_type:
                     boundary_type_polys.append(polyline)
             boundary_type_dict[boundary_type] = boundary_type_polys
-        print( CreateBoundaries)
+        print( "CreateBoundaries")
         return boundary_type_dict    
     
+
+    def __CheckPointInAttributes(self,InputPoint, InputPointColor, AllPolylines, CheckInColorsList):
+        repeated_points = []
+        for polyline in AllPolylines:
+            att_name = polyline.GetColor()
+            # Avoid checking the color with itself and check only in the provided list
+            if ((att_name != InputPointColor) and (att_name in CheckInColorsList)):
+                in_x = InputPoint[0]
+                in_y = InputPoint[1]
+                # Check begin
+                if ((abs(in_x - polyline.GetBeginPoint()[0]) < self._tolerance_repeated_points) and((abs(in_y - polyline.GetBeginPoint()[1]) < self._tolerance_repeated_points))):
+                    new_repeated_point = PolylineRepeatedPoint(InputPointColor, att_name, InputPoint)
+                    repeated_points.append(new_repeated_point)
+                    # repeated_points.extend("BeginPoint")
+                # Check end
+                if ((abs(in_x - polyline.GetEndPoint()[0]) < self._tolerance_repeated_points) and((abs(in_y - polyline.GetEndPoint()[1]) < self._tolerance_repeated_points))):
+                    new_repeated_point = PolylineRepeatedPoint(InputPointColor, att_name, InputPoint)
+                    repeated_points.append(new_repeated_point)
+                    # repeated_points.extend("EndPoint")
+
+        return repeated_points
+
+
+
+
+
+
+
     def __IdentifyRepeteadedPoints(self):
         # Agrupate polilynes by boundary name and in and alphabetic order
-        check_in_colors_list=self.contour_boundary_name
+        self.complete_extracted_atributes_list.sort()
+        check_in_colors_list=self.complete_extracted_atributes_list
+        
         self.repeated_points_in_geometry= []
         # TODO: DO WE REALLY NEED TO DO THIS?
         self.polylines_ordered_according_attribute = sorted(self.contour_polylines_and_attributes, key=lambda x: x[0])
@@ -121,28 +166,31 @@ class ContourInputOutput:
         for polyline in self.polylines_ordered_according_attribute :
             new_polyline_data = PolylineData(polyline[0], polyline[1])
             self.geometry_data_base.append(new_polyline_data)
-        self.polylines_data_base=CreateBoundariesTypeDictionary(self.geometry_data_base,self.contour_boundary_name)
+        self.polylines_data_base=self.CreateBoundariesTypeDictionary(self.geometry_data_base,self.contour_boundary_name)
         # Check if the current poliline endpoints are repeated in other polylines with the diiferent attribute.
         for polyline in self.geometry_data_base:
             polyline_attribute = polyline.GetColor()
-            is_begin_repeated = CheckPointInAttributes(polyline_data.GetBeginPoint(), polyline_attribute, self.geometry_data_base, check_in_colors_list)
-            is_end_repeated = CheckPointInAttributes(polyline_data.GetEndPoint(), polyline_attribute,self.geometry_data_base,check_in_colors_list)
+
+            is_begin_repeated = self.__CheckPointInAttributes(polyline.GetBeginPoint(), polyline_attribute, self.geometry_data_base, check_in_colors_list)
+            is_end_repeated = self.__CheckPointInAttributes(polyline.GetEndPoint(), polyline_attribute,self.geometry_data_base,check_in_colors_list)
             if len(is_begin_repeated) > 0:
-                self.self.repeated_points_in_geometry(is_begin_repeated)
+                
+                self.repeated_points_in_geometry.extend(is_begin_repeated)
             if len(is_end_repeated) > 0:
-                self.self.repeated_points_in_geometry(is_end_repeated)
+                self.repeated_points_in_geometry.extend(is_end_repeated)
+            
+
             check_in_colors_list.pop(0)
 
-    
-    # def __MergeInnerPointsOfAttribute(self):
-    def __OrderPointsandPolylinesByAttibute(self)
+
+    def __OrderPointsandPolylinesByAttibute(self):
         orderedPolyline=[]
         i=1
         tol=1.0e-12
-        merged_polylines_dict = {}
+        self.merged_polylines_dict = {}
         for boundary_type in self.contour_boundary_name:
             self.merged_polylines_dict[boundary_type] = []
-            for point in  self.self.repeated_points_in_geometry: 
+            for point in  self.repeated_points_in_geometry: 
                 right_side_color=point.GetColorOne()
                 # Getting all polylines with Right_side_color
                 right_side_polylines = self.polylines_data_base[right_side_color]
@@ -151,57 +199,103 @@ class ContourInputOutput:
                 left_side_polylines = self.polylines_data_base[left_side_color]
                 repeated_point_coord = point.GetCoordinates() 
                 #TODO: PONERLO COMO RUBEN EN UNA LINEA LAS DOS OPCIONES CHECKEARLO
-                if right_side_color == boundary_type:
-                   same_att_polylines=right_side_polylines
-                elif left_side_color== boundary_type:
-                    same_att_polyline=left_side_polylines
-                for polyline in same_att_polylines:
-                    if repeated_point_coord == polyline.GetBeginPoint():
-                        # Append 1st polyline from the color origin
-                        for point in polyline.GetAllPoints():
-                            self.merged_polylines_dict[boundary_type].append(point)
-                        # From the 1st polyline end append the next one
-                        first_polyline = polyline
-                        aux_polyline_list = same_att_polylines
-                        aux_polyline_list.remove(first_polyline)
-                        for i in range(len(aux_polyline_list)):
-                            for aux_polyline in aux_polyline_list:
-                                # Check the concatenation of polylines
-                                if first_polyline.GetEndPoint() == aux_polyline.GetBeginPoint():
-                                    # Append the polyline colors to the list
-                                    for point in aux_polyline.GetAllPoints():
-                                        merged_polylines_dict[boundary_type].append(point)
-                                    # Update the current polyline
-                                    first_polyline = aux_polyline
-                                    aux_polyline_list.remove(first_polyline)
+                if right_side_color== boundary_type:
+                    for polyline in right_side_polylines:
+                        if repeated_point_coord == polyline.GetBeginPoint():
+                            # Append 1st polyline from the color origin
+                            for point in polyline.GetAllPoints():
+                                self.merged_polylines_dict[boundary_type].append(point)
+                            # From the 1st polyline end append the next one
+                            first_polyline = polyline
+                            aux_polyline_list = right_side_polylines
+                            aux_polyline_list.remove(first_polyline)
+                            for i in range(len(aux_polyline_list)):
+                                for aux_polyline in aux_polyline_list:
+                                    # Check the concatenation of polylines
+                                    if first_polyline.GetEndPoint() == aux_polyline.GetBeginPoint():
+                                        # Append the polyline colors to the list
+                                        for point in aux_polyline.GetAllPoints():
+                                            self.merged_polylines_dict[boundary_type].append(point)
+                                        # Update the current polyline
+                                        first_polyline = aux_polyline
+                                        aux_polyline_list.remove(first_polyline)
+                                        break
+                        elif repeated_point_coord == polyline.GetEndPoint():
+                            # Append 1st polyline from the color origin
+                            for point in polyline.GetAllPoints():
+                                self.merged_polylines_dict[boundary_type].append(point)
+                            # From the 1st polyline end append the next one
+                            first_polyline = polyline
+                            aux_polyline_list = right_side_polylines
+                            aux_polyline_list.remove(first_polyline)
+                            for i in range(len(aux_polyline_list)):
+                                for aux_polyline in aux_polyline_list:
+                                    # Check the concatenation of polylines
+                                    if first_polyline.GetBeginPoint() == aux_polyline.GetEndPoint():
+                                        # Append the polyline colors to the list
+                                        for point in (aux_polyline.GetAllPoints()).reverse():
+                                            self.merged_polylines_dict[boundary_type].append(point)
+                                        # Update the current polyline
+                                        first_polyline = aux_polyline
+                                        aux_polyline_list.remove(first_polyline)
                                     break
-                    elif repeated_point_coord == polyline.GetEndPoint():
-                        # Append 1st polyline from the color origin
-                        for point in polyline.GetAllPoints():
-                            merged_polylines_dict[boundary_type].append(point)
-                        # From the 1st polyline end append the next one
-                        first_polyline = polyline
-                        aux_polyline_list = a_polylines
-                        aux_polyline_list.remove(first_polyline)
-                        for i in range(len(aux_polyline_list)):
-                            for aux_polyline in aux_polyline_list:
-                                # Check the concatenation of polylines
-                                if first_polyline.GetBeginPoint() == aux_polyline.GetEndPoint():
-                                    # Append the polyline colors to the list
-                                    for point in (aux_polyline.GetAllPoints()).reverse():
-                                        merged_polylines_dict[boundary_type].append(point)
-                                    # Update the current polyline
-                                    first_polyline = aux_polyline
-                                    aux_polyline_list.remove(first_polyline)
-                                break
+                if left_side_color== boundary_type:
+                    for polyline in left_side_polylines:
+                        if repeated_point_coord == polyline.GetBeginPoint():
+                            # Append 1st polyline from the color origin
+                            for point in polyline.GetAllPoints():
+                                self.merged_polylines_dict[boundary_type].append(point)
+                            # From the 1st polyline end append the next one
+                            first_polyline = polyline
+                            aux_polyline_list = left_side_polylines
+                            aux_polyline_list.remove(first_polyline)
+                            for i in range(len(aux_polyline_list)):
+                                for aux_polyline in aux_polyline_list:
+                                    # Check the concatenation of polylines
+                                    if first_polyline.GetEndPoint() == aux_polyline.GetBeginPoint():
+                                        # Append the polyline colors to the list
+                                        for point in aux_polyline.GetAllPoints():
+                                            self.merged_polylines_dict[boundary_type].append(point)
+                                        # Update the current polyline
+                                        first_polyline = aux_polyline
+                                        aux_polyline_list.remove(first_polyline)
+                                        break
+                        elif repeated_point_coord == polyline.GetEndPoint():
+                            # Append 1st polyline from the color origin
+                            for point in polyline.GetAllPoints():
+                                self.merged_polylines_dict[boundary_type].append(point)
+                            # From the 1st polyline end append the next one
+                            first_polyline = polyline
+                            aux_polyline_list = left_side_polylines
+                            aux_polyline_list.remove(first_polyline)
+                            for i in range(len(aux_polyline_list)):
+                                for aux_polyline in aux_polyline_list:
+                                    # Check the concatenation of polylines
+                                    if first_polyline.GetBeginPoint() == aux_polyline.GetEndPoint():
+                                        # Append the polyline colors to the list
+                                        for point in (aux_polyline.GetAllPoints()).reverse():
+                                            self.merged_polylines_dict[boundary_type].append(point)
+                                        # Update the current polyline
+                                        first_polyline = aux_polyline
+                                        aux_polyline_list.remove(first_polyline)
+                                    break
                     
-    def PolylinesRepeatedPoint(Polylines,tolerance)  
-        Bound=self.__ContourBoundaryName()
-        self.polyline_gmsh_format=MergeRepeatedPoint(self.merged_polylines_dict[bound],tolerance)
+    # def PolylinesRepeatedPoint(Polylines,tolerance): 
+        
+        
 
+    def __PolylinesGmshContourDic(self):
+        self.PolylinesGmshContourDic={}
+       
+        for Bound in self.contour_boundary_name:
+            
+            self.polyline_gmsh_format=self.MergeRepeatedPoint(self.merged_polylines_dict[Bound],self._tolerance_repeated_points)
+            self.PolylinesGmshContourDic[Bound]=self.polyline_gmsh_format
+        
     def GetPolylinesGmshContourDic(self):
-        return self.self.polyline_gmsh_format
-
+        print(self.contour_boundary_name[0])
+        print(self.PolylinesGmshContourDic[self.contour_boundary_name[0]])
+        return self.PolylinesGmshContourDic
     # def __SetBoundariesInformation(self):
         
     #     self.polylines_ordered_according_attribute = sorted(self.contour_polylines_and_attributes, key=lambda x: x[0])
@@ -228,23 +322,23 @@ class ContourInputOutput:
     #             self.att_repeated.extend(is_end_repeated)
     #         check_in_colors_list.pop(0)
 
-    def MergeRepeatedPoint(AttributePolylines, tolerance):
-    NewAttributePolylines=[]
-    for point  in AttributePolylines:
-        if point not in NewAttributePolylines:
-            NewAttributePolylines.append(point)
+    def MergeRepeatedPoint(self,AttributePolylines, tolerance):
+        NewAttributePolylines=[]
+        for point  in AttributePolylines:
+            if point not in NewAttributePolylines:
+                NewAttributePolylines.append(point)
 
-    AttributePolylines=NewAttributePolylines
-    return AttributePolylines
-
-
+        AttributePolylines=NewAttributePolylines
+        return AttributePolylines
 
 
-    def __CollapseEndPoints(self):
 
-    def __ReorderBoundaries(self):
 
-    def __MergeInnerPoints(self):
+    # def __CollapseEndPoints(self):
+
+    # def __ReorderBoundaries(self):
+
+    # def __MergeInnerPoints(self):
 
     def __SetCountourData(self):
         if not hasattr(self, "_countour_data"):
@@ -301,6 +395,5 @@ class PolylineData():
 
     def GetAllPoints(self):
         return self.all_points
-
 
 

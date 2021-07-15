@@ -1,6 +1,5 @@
 import KratosMultiphysics 
 import KratosMultiphysics.KratosUnittest as KratosUnittest
-#from KratosMultiphysics.CoSimulationApplication.utilities import model_part_utilities
 from KratosMultiphysics.gid_output_process import GiDOutputProcess
 from KratosMultiphysics.vtk_output_process import VtkOutputProcess
 import KratosMultiphysics.MappingApplication as KratosMapping
@@ -12,10 +11,6 @@ from KratosMultiphysics.MeshMovingApplication.mesh_moving_analysis import MeshMo
 # 
 #                 The aim of this class is to elevate  2d contour mesh using a user defined raster file of the estudy zone. 
 #------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
 class TerrainElevationFromRaster():
     def __init__(self,model,settings,BoundingBox):
         print("TerrainElevationFromRaster class constructor is called ")
@@ -26,9 +21,6 @@ class TerrainElevationFromRaster():
         self.model_part=settings["floor_model_name"].GetString()
         self.main_model_part=settings["main_submodel"].GetString()
         self.model=model
-
-
-
 
     def Execute(self):
         self.ReadingGmshMdpaToKratos()
@@ -65,20 +57,18 @@ class TerrainElevationFromRaster():
         ElementsIdentities=[]
         Nodesidentities=[]
         for element in self.ContouringModelPart.Elements:
+            #TODO: Automate activation_level for floor corresponding to total number of boundaries.(DONE)
             if element.GetValue(KratosMultiphysics.ACTIVATION_LEVEL) == 5:    
                 ElementsIdentities.append(element.Id)
                 geom=element.GetGeometry()
                 nodesid=[]
                 element.Set(KratosMultiphysics.TO_ERASE)
-                
                 for i in range(geom.PointsNumber()):
                     node=geom[i]
                     Nodesidentities.append(node.Id)
                     nodesid.append(node.Id)
         Submodel.AddNodes(Nodesidentities)
-        Submodel.AddElements(ElementsIdentities)   
-
-                    
+        Submodel.AddElements(ElementsIdentities)                      
         Prop1=KratosMultiphysics.Properties(1)   
 
     def ReadingElevationRasterFile(self):
@@ -87,11 +77,9 @@ class TerrainElevationFromRaster():
         self.x_raster=[]
         self.y_raster=[]
         
-        # ELEVATION=(DENSITY)
         self.z_raster=[]
         for line in xyz:
             x,y,z =line.split()
-            print(line)
             self.x_raster.append(float(x))
             self.y_raster.append(float(y))
             self.z_raster.append(float(z))
@@ -102,13 +90,16 @@ class TerrainElevationFromRaster():
         #TODO: A function in gmsh with the boundingbox call
         MinX=self.bounding_box[1][0]
         MinY=self.bounding_box[1][1]
+        #TODO: It should be moved raster file only if it is defined in UserProperties.json
         for i in range(len(self.x_raster)):
             self.x_raster[i] = self.x_raster[i] - MinX
             self.y_raster[i] = self.y_raster[i] - MinY
             self.z_raster[i] = self.z_raster[i] - MinZ
         self.MaxZ=max(self.z_raster)
+
     def GetMaximumFloorElevation(self):
         return self.MaxZ
+
     def GeoprocessingRasterSubmodelPart(self):
         self.Geoprocessing_raster=self.model.CreateModelPart("GeoprocessingRaster")
         raster_mesh= self.Geoprocessing_raster.CreateSubModelPart("raster")
@@ -134,12 +125,7 @@ class TerrainElevationFromRaster():
         # for node in self.ContouringModelPart.GetSubModelPart(self.model_part).Nodes:
         interface_mapper = KratosMapping.MapperFactory.CreateMapper(self.Geoprocessing_raster, self.ContouringModelPart, mapper_project_parameters)
         interface_mapper.Map(KratosMultiphysics.MESH_DISPLACEMENT_Z, KratosMultiphysics.MESH_DISPLACEMENT_Z)
-
-            # Elevation= node.GetSolutionStepValue(KratosMultiphysics.MESH_DISPLACEMENT_Z)
-            # node.Z0=Elevation-self.DeltaZ
-            # node.Z=Elevation-self.DeltaZ
         for node in self.ContouringModelPart.GetSubModelPart(self.model_part).Nodes:
-
             Elevation= node.GetSolutionStepValue(KratosMultiphysics.MESH_DISPLACEMENT_Z)
             node.Z0=Elevation
             node.Z=Elevation

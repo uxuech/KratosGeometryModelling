@@ -1,7 +1,7 @@
 
         {
         	
-                "file_name": "TestGood",
+                "file_name": "RiverAreaTest",
                 "round_coordinates": true,
                 "file_format": ".shp",
                 "move_to_origen": true,
@@ -19,7 +19,6 @@
                 "nodes": true,
                 "join_models": true,
                 "join_model_name": "SLIPBC",
-
                 "Slip_Boundaries" : ["Colors.Top","Colors.Floor","Colors.Walls1","Colors.Walls2"]
             
         }

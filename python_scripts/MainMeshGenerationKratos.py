@@ -7,35 +7,16 @@ import meshio
 # importing external classes in order to build tridimensional terrain mesh automatycally 
 from contour_input_output import ContourInputOutput
 from gmsh_contour_2D_mesh import GmshContour2dMeshGenerator
-# from simulation_mesh_medpa import SimulationMeshMdpa
 from gmsh_3d_mesh_terrain import Gmsh3dMeshTerrain
 from kratos_terrain_elevation import TerrainElevationFromRaster
 from simulation_mesh_mdpa import SimulationMeshMdpa
 import KratosMultiphysics 
 import KratosMultiphysics.KratosUnittest as KratosUnittest
-#from KratosMultiphysics.CoSimulationApplication.utilities import model_part_utilities
 from KratosMultiphysics.gid_output_process import GiDOutputProcess
 from KratosMultiphysics.vtk_output_process import VtkOutputProcess
 import KratosMultiphysics.MappingApplication as KratosMapping
 from KratosMultiphysics.MappingApplication import python_mapper_factory
 from KratosMultiphysics.MeshMovingApplication.mesh_moving_analysis import MeshMovingAnalysis
-# from JoininModelPart import JoiningModelParts
-
-# VARIABLES THAT SHOULD BE CHOOSED BY USERS
-# 1. Shapefile name and file and path in order to get it 
-# 2. mdpa name 2d ( necesario )
-# 3. ModelPartName???
-# 4. Raster name
-# 5. Mesh size
-# 6. output mdpa 3d name
-# 7. optional features: Rounded....etc 
-# 8. movement to origin
-#
-#
-#and extracted from other classes 
-#TODO: We need to read geoprojectparameters.json
-# we are normalizing data base extracted from a shapefile in order to use gmsh meshing tools
-
 
 with open("UserProperties.json",'r') as parameter_file:
     default_settings = KratosMultiphysics.Parameters(parameter_file.read())    
@@ -62,12 +43,8 @@ VolumeMesh= Gmsh3dMeshTerrain(model,default_settings,TotalBoundariesNames,TotalN
 ,maximum_terrain_elevation)
 VolumeMesh.Execute()
 KratosColors=VolumeMesh.GetKratosColorsIdentifiers()
-# Assigning colors to meshing surface. w
+# Assigning colors to meshing surface.
 ColorAssignation=SimulationMeshMdpa(default_settings,KratosColors)
 ColorAssignation.Execute()
-# Joinining ModelParts 
-# JoinSlipBoundaries=JoiningModelParts(model,default_settings)
-# JoinSlipBoundaries.Execute()
-
 
 

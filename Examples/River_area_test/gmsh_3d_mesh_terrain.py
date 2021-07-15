@@ -1,7 +1,5 @@
 
 import KratosMultiphysics 
-import KratosMultiphysics.KratosUnittest as KratosUnittest
-#from KratosMultiphysics.CoSimulationApplication.utilities import model_part_utilities
 from KratosMultiphysics.gid_output_process import GiDOutputProcess
 from KratosMultiphysics.vtk_output_process import VtkOutputProcess
 import KratosMultiphysics.MappingApplication as KratosMapping
@@ -12,6 +10,7 @@ import gmsh
 import sys
 import meshio
 import os
+
 class Gmsh3dMeshTerrain():
     #TODO: Pensar en como  vamos a leer kratos_desde ??
     def __init__(self,model,settings,TotalBoundariesNames,TotalNodesBoundaryId,Total_external_points,boundary_type,Gmsh_geometry,maximum_terrain_elevation):
@@ -44,7 +43,6 @@ class Gmsh3dMeshTerrain():
         self.floor_surface_data_base=BoundaryNodalIdentification(self.total_boundaries_names,self.boundary_nodes_id,self.total_external_points)
         self.boundary_nodes_ids=self.floor_surface_data_base.NodesIdentitiesbyBoundary()
         self.boundary_gmsh_identifier=self.floor_surface_data_base.GetBoundaryNames()
-        print(self.boundary_gmsh_identifier)
         
 
     def __FromMeshToDiscretizatedFloorModel(self):
@@ -75,8 +73,6 @@ class Gmsh3dMeshTerrain():
             for node in self.elevated_mesh_model_part.Nodes:
                 self.nodes_inserted.append(node.Id)
                 self.cordinates=[node.X, node.Y, node.Z]
-                print(self.cordinates)
-                
                 self.coords.extend(self.cordinates)
                 if node.Id == self.nodes_storages[0]:
                     if node.Id not in self.node_not_repeated:
@@ -102,21 +98,18 @@ class Gmsh3dMeshTerrain():
        
         # Here discrete floor contour is defined 2D
         self.entity_floor=gmsh.model.addDiscreteEntity(2, 1,self.lines_discrete_entities)
-
+        if '-nopopup' not in sys.argv:
+            gmsh.fltk.run()
+        
+        
     def __FloorNodesIdentification(self):
         # Here all nodes generated from the previous gmsh model are added as a node entity,independently, where they are located.
-        # Nodes 0d added
-        # gmsh.model.mesh.addNodes(2, 1, self.nodes_inserted, self.coords)
-        
-        # for i in range(len(self.boundary_gmsh_identifier)):
-        #     self.corner_nodes=self.boundary_gmsh_identifier[i].tolist()
-        #     gmsh.model.mesh.addElementsByType(i + 1, 15, [], self.corner_nodes) 
+
         gmsh.model.mesh.addNodes(2, 1, self.nodes_inserted, self.coords)
-        i=1
+       
         for extracted_boundary_name in  self.boundary_gmsh_identifier:
             self.bound=extracted_boundary_name.tolist()[0]
             gmsh.model.mesh.addElementsByType(self.boundary_nodes_ids[self.bound][0], 15, [], [self.boundary_nodes_ids[self.bound][0]])
-            i+=1
 
         
        
@@ -133,8 +126,6 @@ class Gmsh3dMeshTerrain():
                 
                 self.line_element.extend(line)
             self.total_line_element.append(self.line_element)
-        print(self.total_line_element)
-        
         # Elements 1d added into floor geometry
         for i in range(len(self.total_line_element)):    
             gmsh.model.mesh.addElementsByType(i+1, 1, [],self.total_line_element[i])
@@ -156,60 +147,12 @@ class Gmsh3dMeshTerrain():
         gmsh.model.mesh.reclassifyNodes()
         gmsh.model.mesh.createGeometry()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def __CreateTopSurfaceModel(self):
         self.__TopSurfaceContourDefinition()
         self.__SavingTopMeshInformation()
         self.__AddingToNewGmshModelTopEntities()
         self.__TopSurfaceDiscretization()
         self.__BuiltBoundaryWalls()
-
-
-
-
-
-
-
 
     #TODO: This should be done using a generic function since the same procedure is done in other python module
     def __TopSurfaceContourDefinition(self):
@@ -236,11 +179,11 @@ class Gmsh3dMeshTerrain():
 
         gmsh.model.geo.synchronize()
 
-        NN = 10
+        number_of_nodes = 10
         for c in gmsh.model.getEntities(1):
-            gmsh.model.mesh.setTransfiniteCurve(c[1], NN)
-
+            gmsh.model.mesh.setTransfiniteCurve(c[1], number_of_nodes )
         gmsh.model.mesh.generate(2)
+
     def __SavingTopMeshInformation(self):
         self.top_mesh_information = {}
         for top_entity in gmsh.model.getEntities():
@@ -265,7 +208,6 @@ class Gmsh3dMeshTerrain():
         # Getting Nodes from contour Surface 
         for i in range(len(self.total_boundaries_names)):
             Entity_to_analyse= [(1,self.lines_ids_top[i])]
-            print(Entity_to_analyse)
             NodesBoundaryId_Top=gmsh.model.mesh.getNodes(1,self.lines_ids_top[i],includeBoundary=True ) # obtenemos la lista de nodos paara cads entidad de linea =>> unicamnete considerando los internodos ( nada de los extremos)
             ExternalPoints_Top=gmsh.model.getBoundary(Entity_to_analyse,oriented = False) #  obtenemos los puntos extremos de la linea y ademas le marcamos que nos indique la dirección de la linea 
             InitialPoint_Top=ExternalPoints_Top[0]
@@ -299,69 +241,46 @@ class Gmsh3dMeshTerrain():
         self.BoundaryNodesIds_Top=self.TopSurfaceDataBase.NodesIdentitiesbyBoundary()
         BoundaryDictionary_Top=self.TopSurfaceDataBase.GetBoundaryNames()
 
-
-
-
-
-    # def __TopSurfaceDefinition(self):
-        
-
     def __BuiltBoundaryWalls(self):
         self.ConectivitiesByBoundary=self.__AuxiliarySkinTriangulationGmsh(self.BoundaryNodesIds_Top,self.BoundaryNodesIds_newfloor,self.boundary_gmsh_identifier)
-
-    
-    
+   
     def __AuxiliarySkinTriangulationGmsh(self,TopNodesbyBoundary,FloorNodesbyBoundary,total_boundaries_names): 
         connectivities_by_boundary={}
-        print(total_boundaries_names)
         for extracted_boundary_name in total_boundaries_names:
-            print(extracted_boundary_name)
             bound=extracted_boundary_name.tolist()[0]
             connectivities=[]
             for j in range(len(TopNodesbyBoundary[bound])-1):
-                # PRIMER TRIANGULO DEL SEGMENTO (se insertar todos en una unica lista para aña)
+                # First triangle of the segment
                 connectivities.append(TopNodesbyBoundary[bound][j])
                 connectivities.append(self.BoundaryNodesIds_newfloor[bound][j])
                 connectivities.append(self.BoundaryNodesIds_newfloor[bound][j+1])
 
-                #SEGUNDO TRIANGULO DEL SEGMENTO
+                # Second triangle of the segment
                 connectivities.append(TopNodesbyBoundary[bound][j])
                 connectivities.append(self.BoundaryNodesIds_newfloor[bound][j+1])
                 connectivities.append(TopNodesbyBoundary[bound][j+1])
             connectivities_by_boundary[bound]=connectivities
         return connectivities_by_boundary
 
-
     def __Gmsh3dDiscreteMesh(self):
-        # ConectivitiesByBoundary=SkinTriangulationGmsh(BoundaryNodesIds_Top,BoundaryNodesIds_newfloor,self.total_boundaries_names)
-
         FloorPoints= self.NewFloor_SurfaceDataBase.ExternalPointEntity()
         TopPoints=self.TopSurfaceDataBase.ExternalPointEntity()
-        print(FloorPoints)
-        print(TopPoints)
-
-        # IdsLineDict={}
         control_check=[]
         InitialLines=[]
         for i in range(len( self.total_boundaries_names)):
             Bound=self.total_boundaries_names[i].tolist()[0]
-    
             initialline=gmsh.model.addDiscreteEntity(1,-1,[FloorPoints[Bound][0],TopPoints[Bound][0]])
             gmsh.model.mesh.addElementsByType(initialline, 1, [],[self.BoundaryNodesIds_newfloor[Bound][0],self.BoundaryNodesIds_Top[Bound][0]])
-            # finallines=gmsh.model.addDiscreteEntity(1,-1,[TopPoints[Bound][1],FloorPoints[Bound][1]])
-            # gmsh.model.mesh.addElementsByType(finallines, 1, [],[BoundaryNodesIds_newfloor[Bound][-1],BoundaryNodesIds_Top[Bound][-1]])
             Idwithpoint=[initialline,FloorPoints[Bound][0]]
             InitialLines.append(initialline)
             control_check.append(Idwithpoint)
-
         endlines=[]
         for i in range (len(self.total_boundaries_names)):
             Bound=self.total_boundaries_names[i].tolist()[0]
             for element in control_check:
                 if FloorPoints[Bound][1] == element[1]:
                     endlines.append(element[0])
-        print(InitialLines)
-        print(endlines)
+
 
         FloorPhysical=gmsh.model.addPhysicalGroup(2,[self.entity_floor])
         gmsh.model.setPhysicalName(2,FloorPhysical, self.floor_model_part)
@@ -385,9 +304,6 @@ class Gmsh3dMeshTerrain():
             gmsh.model.geo.removeAllDuplicates()
             test.append(AssigningiBoundary)
 
-
-
-                
         surfaces = gmsh.model.getEntities(2)
         gmsh.model.geo.synchronize()
         loopSurface = gmsh.model.geo.addSurfaceLoop([surfaces[i][1] for i in range(len(surfaces))])
@@ -406,13 +322,12 @@ class Gmsh3dMeshTerrain():
         gmsh.option.setNumber("Mesh.MeshSizeMax",self.mesh_size)
         gmsh.model.geo.synchronize()
         gmsh.model.mesh.generate(3)
-        # if '-nopopup' not in sys.argv:
-        #     gmsh.fltk.run()
-    def GetKratosColorsIdentifiers(self):
-        
-        return self.color_dictionary
-    def __ExportingMeshToMdpa(self):
 
+    def GetKratosColorsIdentifiers(self):  
+        return self.color_dictionary
+
+    def __ExportingMeshToMdpa(self):
+        
         gmsh.write(self.file_name+"_3d.vtk")
         meshing=meshio.read(self.file_name+"_3d.vtk")
         meshio.mdpa.write(self.file_name+"_3d.mdpa", meshing)
@@ -434,19 +349,6 @@ class Gmsh3dMeshTerrain():
 
     def GetBoundaryNames(self):
         return self.boundary_type
-        edited_mdpa.close()
-        import KratosMultiphysics as KM
-        import KratosMultiphysics.KratosUnittest as KratosUnittest
-        #from KratosMultiphysics.CoSimulationApplication.utilities import model_part_utilities
-        from KratosMultiphysics.gid_output_process import GiDOutputProcess
-        import KratosMultiphysics.MappingApplication as KratosMapping
-        from KratosMultiphysics.MappingApplication import python_mapper_factory
-        from KratosMultiphysics.MeshMovingApplication.mesh_moving_analysis import MeshMovingAnalysis
-        import meshio
-        import numpy as np
-        # RELACIONAR LAS BOUNDARIES USUARIO Y LAS ASIGNADAS POR EL GMSH ( EXTRAER LA INFORMACION DEL OTRO SCRIPT --DE MOMENTO AUXILIAR ESTA LISTA DE LISTAS)
-        BoundariesSurface=Boundaries[2]
-        Body=Boundaries[3]
 
     def Execute(self):
         self.__ReadingKratosTerrainElevatedMeshGmsh()
@@ -473,19 +375,17 @@ class Gmsh3dMeshTerrain():
             volume_boundary_identifiers.append(check)
         BoundarybyDimension[3]=volume_boundary_identifiers
         return BoundarybyDimension
+        
 class BoundaryNodalIdentification():
     def __init__(self,BoundaryType,TotalNodeBoundaryId,ExternalPoint):
         self.boundary_type=BoundaryType
         self.total_node_boundary=TotalNodeBoundaryId
         self.external_point=ExternalPoint
-        print(self)
     def NodesIdentitiesbyBoundary(self):
         NodesIdsbyBoundary={}
         for i in range(len(self.boundary_type)):
-            print(self.boundary_type)
             bound=self.boundary_type[i].tolist()[0]
             NodesList=self.total_node_boundary[i].tolist()
-            print(NodesList)
             self.initial_point_Id=NodesList[len(NodesList)-2]
             self.final_point_Id=NodesList[-1]
             NodesList.remove(self.initial_point_Id)

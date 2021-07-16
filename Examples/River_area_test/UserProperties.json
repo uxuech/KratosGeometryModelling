@@ -1,0 +1,24 @@
+
+        {
+        	
+                "file_name": "RiverAreaTest",
+                "round_coordinates": true,
+                "file_format": ".shp",
+                "move_to_origen": true,
+                "tolerance_repeated_points": 1e-5,
+                "mesh_size": 5,
+                "output_gmsh_2d": true,
+                "output_gmsh_2d_format": "mdpa",
+                "raster_file_name": "urederra25buffer.xyz",
+                "main_submodel": "Contour",
+                "floor_model_name": "Floor",
+                "top_model_name": "Top",
+                "3d_model_elevation": 60,
+                "3d_mesh_size": 5,
+                "condition": true,
+                "nodes": true,
+                "join_models": true,
+                "join_model_name": "SLIPBC",
+                "Slip_Boundaries" : ["Colors.Top","Colors.Floor","Colors.Walls1","Colors.Walls2"]
+            
+        }

@@ -1,0 +1,17 @@
+
+        {
+        	"file_name":"cube",
+        	"round_coordinates": true,
+        	"file_format":".shp",
+        	"move_to_origen":true,
+        	"tolerance_repeated_points":1e-5,
+			"mesh_size":100,
+			"output_gmsh_2d": true,
+			"output_gmsh_2d_format": "mdpa",
+			"raster_file_name": "cube.xyz",
+			"main_submodel":"Contour",
+			"floor_model_name": "Floor",
+			"top_model_name": "Top",
+			"3d_model_elevation":100,
+			"3d_mesh_size":100
+        }

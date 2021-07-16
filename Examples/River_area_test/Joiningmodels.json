@@ -1,0 +1,5 @@
+{"first_model_part_name": "Colors.SLIPBC",
+"second_model_part_name": "Colors.Walls2",
+"result_model_part_name": "Colors.SLIPBC",
+"boolean_operation": "Union",
+"entity_type": "Conditions"}

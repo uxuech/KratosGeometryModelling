@@ -103,8 +103,6 @@ class Gmsh3dMeshTerrain():
             self.lines_discrete_entities.append(line_dicrete_entity_id)
         # Here discrete floor contour is defined 2D
         self.entity_floor=gmsh.model.addDiscreteEntity(2, 1,self.lines_discrete_entities)
-        # if '-nopopup' not in sys.argv:
-        #     gmsh.fltk.run()
     def __FloorNodesIdentification(self):
         # Here all nodes generated from the previous gmsh model are added as a node entity,independently, where they are located.
         # Nodes 0d added
@@ -416,6 +414,7 @@ class BoundaryNodalIdentification():
         NodesIdsbyBoundary={}
         for i in range(len(self.boundary_type)):
             bound=self.boundary_type[i].tolist()[0]
+            NodesList=self.total_node_boundary[i].tolist()
             self.initial_point_Id=NodesList[len(NodesList)-2]
             self.final_point_Id=NodesList[-1]
             NodesList.remove(self.initial_point_Id)

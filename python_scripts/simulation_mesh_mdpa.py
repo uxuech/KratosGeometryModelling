@@ -8,12 +8,18 @@ class SimulationMeshMdpa():
         self.file_name=settings["file_name"].GetString()
         self.outputfile_2d=settings["file_name"].GetString()
         self.kratos_color_identifiers=KratosColors
+
+        
+        #Decirle A Ruben si se uede hacer esto 
+        # self.joined_model_part_name=settings["joined_model_name"].GetLIsta(ruen)
         self.wall_model_parts=settings["Slip_Boundaries"]
+        # self.wall_model_parts=["Walls1","Walls2","Top","Floor"]
         self.condition=settings["condition"].GetBool()
         self.nodes=settings["nodes"].GetBool()
         self.joined_model_part_name=settings["join_model_name"].GetString()
         self.join_model_part=settings["join_models"].GetBool()
         
+
     def __ReadingMdpaFile(self):
         self.model= KratosMultiphysics.Model()
         self.ColorModelPart=self.model.CreateModelPart("Colors")
@@ -38,10 +44,11 @@ class SimulationMeshMdpa():
             KratosMultiphysics.ReorderAndOptimizeModelPartProcess(self.ColorModelPart, tmp).Execute()
         if os.path.exists(self.file_name+"_3d.mdpa"):
             os.remove(self.file_name+"_3d.mdpa")
-
     def __MdpaTwoFluidSimulation(self):
+
         ErasedElements=[]
         for surface in self.kratos_color_identifiers[2]:
+            
             Submodel=self.ColorModelPart.CreateSubModelPart(surface[1])
             ElementsIdentities=[]
             Nodesidentities=[]
@@ -89,7 +96,7 @@ class SimulationMeshMdpa():
     
     def __CreateJoinedEmptyModelPart(self):
         self.join_sub_model=self.ColorModelPart.CreateSubModelPart(self.joined_model_part_name)
-
+     
     def __WriteFinalMdpaJoined(self):
         name_out_file=self.file_name+"_3d_joined"
         KratosMultiphysics.ModelPartIO(name_out_file, KratosMultiphysics.IO.WRITE).WriteModelPart(self.ColorModelPart)

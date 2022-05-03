@@ -94,9 +94,13 @@ class SimulationMeshMdpa():
             os.remove(self.file_name+"_2d.vtk")
             os.remove(self.file_name+"_3d.vtk")
     
+
+
     def __CreateJoinedEmptyModelPart(self):
         self.join_sub_model=self.ColorModelPart.CreateSubModelPart(self.joined_model_part_name)
-     
+
+        
+
     def __WriteFinalMdpaJoined(self):
         name_out_file=self.file_name+"_3d_joined"
         KratosMultiphysics.ModelPartIO(name_out_file, KratosMultiphysics.IO.WRITE).WriteModelPart(self.ColorModelPart)
@@ -134,6 +138,7 @@ class SimulationMeshMdpa():
         self.__ReadingMdpaFile()
         self.__MdpaTwoFluidSimulation()
         if self.join_model_part:
+            # self.__ReadingInputMdpa()
             self.__CreateJoinedEmptyModelPart()
             self.__JoiningSlipConditionModelParts()
             self.__WriteFinalMdpaJoined()

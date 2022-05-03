@@ -93,10 +93,11 @@ class TerrainElevationFromRaster():
         self.x_raster=[]
         self.y_raster=[]
         
-
+        # ELEVATION=(DENSITY)
         self.z_raster=[]
         for line in xyz:
             x,y,z =line.split()
+
             self.x_raster.append(float(x))
             self.y_raster.append(float(y))
             self.z_raster.append(float(z))

@@ -43,8 +43,6 @@ class GmshContour2dMeshGenerator():
             physicalgroupname.append(lineId)
         
         gmsh.model.geo.removeAllDuplicates()
-
-
         gmsh.model.geo.addCurveLoop(linesIdsFloor)
         gmsh.model.geo.synchronize()
         floor=gmsh.model.geo.addPlaneSurface([1])
@@ -71,7 +69,6 @@ class GmshContour2dMeshGenerator():
 
             if e[0]==1:
                 NodesBoundaryId=gmsh.model.mesh.getNodes(e[0], e[1],includeBoundary=True)
-
                 ExternalPoints=gmsh.model.getBoundary([e],oriented = False)
                 InitialPoint=ExternalPoints[0]
                 FinalPoint=ExternalPoints[1]

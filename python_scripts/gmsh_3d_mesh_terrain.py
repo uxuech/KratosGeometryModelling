@@ -59,7 +59,7 @@ class Gmsh3dMeshTerrain():
 
     def __DiscreteBoundaryEntitiesDefinition(self):
         # This method redefines again 2d Contour  study case in a discrete way.
-        for node in self.elevated_mesh_model_part.Nodes:           
+        for node in self.elevated_mesh_model_part.Nodes:
             self.test.append(node.Id)
         
         for boundary_list in self.boundary_gmsh_identifier:
@@ -74,15 +74,19 @@ class Gmsh3dMeshTerrain():
             # Here boundary points are defined 0D
             for node in self.elevated_mesh_model_part.Nodes:
                 self.nodes_inserted.append(node.Id)
-                self.cordinates=[node.X, node.Y, node.Z]               
-                self.coords.extend(self.cordinates)                              
+                self.cordinates=[node.X, node.Y, node.Z]
+                
+                self.coords.extend(self.cordinates)
+                
+                
                 if node.Id == self.nodes_storages[0]:
                     if node.Id not in self.node_not_repeated:
                         gmsh.model.addDiscreteEntity(0, node.Id)
                         gmsh.model.setCoordinates(node.Id, node.X, node.Y, node.Z)
                         self.point_entity.append(node.Id)
                         self.node_not_repeated.append(node.Id)
-                    else:                     
+                    else:
+                        
                         self.point_entity.append(node.Id)
                         
                 elif node.Id == self.nodes_storages[-1]:
@@ -97,7 +101,6 @@ class Gmsh3dMeshTerrain():
             # Here boundary discrete lines are defined.1D
             line_dicrete_entity_id=gmsh.model.addDiscreteEntity(1, self.extracted_boundary_name, self.point_entity)
             self.lines_discrete_entities.append(line_dicrete_entity_id)
-
         # Here discrete floor contour is defined 2D
         self.entity_floor=gmsh.model.addDiscreteEntity(2, 1,self.lines_discrete_entities)
         # if '-nopopup' not in sys.argv:
@@ -116,10 +119,11 @@ class Gmsh3dMeshTerrain():
 
             self.bound=extracted_boundary_name.tolist()[0]
             gmsh.model.mesh.addElementsByType(self.boundary_nodes_ids[self.bound][0], 15, [], [self.boundary_nodes_ids[self.bound][0]])
-
             
 
         
+       
+
     def __Floor1dElementsDefinition(self):
         self.total_line_element=[]       
 
@@ -275,6 +279,7 @@ class Gmsh3dMeshTerrain():
         FloorPoints= self.NewFloor_SurfaceDataBase.ExternalPointEntity()
         TopPoints=self.TopSurfaceDataBase.ExternalPointEntity()
 
+        # IdsLineDict={}
         control_check=[]
         InitialLines=[]
         for i in range(len( self.total_boundaries_names)):
@@ -294,7 +299,6 @@ class Gmsh3dMeshTerrain():
             for element in control_check:
                 if FloorPoints[Bound][1] == element[1]:
                     endlines.append(element[0])
-
 
         FloorPhysical=gmsh.model.addPhysicalGroup(2,[self.entity_floor])
         gmsh.model.setPhysicalName(2,FloorPhysical, self.floor_model_part)
@@ -339,7 +343,6 @@ class Gmsh3dMeshTerrain():
         # if '-nopopup' not in sys.argv:
         #     gmsh.fltk.run()
     def GetKratosColorsIdentifiers(self):
-
         return self.color_dictionary
 
     def __ExportingMeshToMdpa(self):
@@ -413,7 +416,6 @@ class BoundaryNodalIdentification():
         NodesIdsbyBoundary={}
         for i in range(len(self.boundary_type)):
             bound=self.boundary_type[i].tolist()[0]
-            NodesList=self.total_node_boundary[i].tolist()
             self.initial_point_Id=NodesList[len(NodesList)-2]
             self.final_point_Id=NodesList[-1]
             NodesList.remove(self.initial_point_Id)

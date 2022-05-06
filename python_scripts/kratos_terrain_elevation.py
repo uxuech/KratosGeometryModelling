@@ -1,4 +1,4 @@
-import KratosMultiphysics 
+import KratosMultiphysics
 import KratosMultiphysics.KratosUnittest as KratosUnittest
 #from KratosMultiphysics.CoSimulationApplication.utilities import model_part_utilities
 from KratosMultiphysics.gid_output_process import GiDOutputProcess
@@ -8,9 +8,9 @@ from KratosMultiphysics.MappingApplication import python_mapper_factory
 from KratosMultiphysics.MeshMovingApplication.mesh_moving_analysis import MeshMovingAnalysis
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------
-#                 3. THIRD MODULE OF KRATOS GEOMETRY MODELLING FOR TERRAIN MESHER APPLICATION 
-# 
-#                 The aim of this class is to elevate  2d contour mesh using a user defined raster file of the estudy zone. 
+#                 3. THIRD MODULE OF KRATOS GEOMETRY MODELLING FOR TERRAIN MESHER APPLICATION
+#
+#                 The aim of this class is to elevate  2d contour mesh using a user defined raster file of the estudy zone.
 #------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -27,6 +27,7 @@ class TerrainElevationFromRaster():
         self.main_model_part=settings["main_submodel"].GetString()
         self.model=model
         self.floor_property=floor_identification_model
+        self._file_name = settings["file_name"].GetString()
 
 
 
@@ -41,10 +42,10 @@ class TerrainElevationFromRaster():
         print("gmsh contour submodel parts are been defined")
         self.GeoprocessingRasterSubmodelPart()
         print("gmsh contour submodel parts are been defined")
-        self.GmshContourElevation()    
-    
+        self.GmshContourElevation()
+
     def ReadingGmshMdpaToKratos(self):
-        
+
         self.ContouringModelPart=self.model.CreateModelPart("Contour")
         self.ContouringModelPart.ProcessInfo[KratosMultiphysics.DOMAIN_SIZE] = 3
         self.ContouringModelPart.AddNodalSolutionStepVariable(KratosMultiphysics.MESH_DISPLACEMENT)
@@ -71,28 +72,28 @@ class TerrainElevationFromRaster():
         ElementsIdentities=[]
         Nodesidentities=[]
         for element in self.ContouringModelPart.Elements:
-            if element.GetValue(KratosMultiphysics.ACTIVATION_LEVEL) == self.floor_property:    
+            if element.GetValue(KratosMultiphysics.ACTIVATION_LEVEL) == self.floor_property:
                 ElementsIdentities.append(element.Id)
                 geom=element.GetGeometry()
                 nodesid=[]
                 element.Set(KratosMultiphysics.TO_ERASE)
-                
+
                 for i in range(geom.PointsNumber()):
                     node=geom[i]
                     Nodesidentities.append(node.Id)
                     nodesid.append(node.Id)
         Submodel.AddNodes(Nodesidentities)
-        Submodel.AddElements(ElementsIdentities)   
+        Submodel.AddElements(ElementsIdentities)
 
-                    
-        Prop1=KratosMultiphysics.Properties(1)   
+
+        Prop1=KratosMultiphysics.Properties(1)
 
     def ReadingElevationRasterFile(self):
         xyz=open(self.raster_file_name,'r')
         xyz.readline()
         self.x_raster=[]
         self.y_raster=[]
-        
+
         # ELEVATION=(DENSITY)
         self.z_raster=[]
         for line in xyz:
@@ -101,7 +102,7 @@ class TerrainElevationFromRaster():
             self.x_raster.append(float(x))
             self.y_raster.append(float(y))
             self.z_raster.append(float(z))
-        
+
         MaxZ=max(self.z_raster)
         MinZ=min(self.z_raster)
         self.DeltaZ=MaxZ-MinZ
@@ -116,11 +117,11 @@ class TerrainElevationFromRaster():
     def GetMaximumFloorElevation(self):
         return self.MaxZ
     def GeoprocessingRasterSubmodelPart(self):
-        
-        
+
+
         self.Geoprocessing_raster=self.model.CreateModelPart("GeoprocessingRaster")
         raster_mesh= self.Geoprocessing_raster.CreateSubModelPart("raster")
-        mysubmodel=self.model 
+        mysubmodel=self.model
         raster_mesh.AddNodalSolutionStepVariable(KratosMultiphysics.MESH_DISPLACEMENT_Z)
         raster_mesh.AddNodalSolutionStepVariable(KratosMultiphysics.MESH_DISPLACEMENT_Z)
         for i in range(int(len(self.x_raster))):
@@ -138,7 +139,7 @@ class TerrainElevationFromRaster():
                 }""")
         mapper_project_parameters["mapper_type"].SetString("nearest_neighbor")
         mapper_project_parameters["interface_submodel_part_origin"].SetString("raster")
-        mapper_project_parameters["interface_submodel_part_destination"].SetString(self.model_part)      
+        mapper_project_parameters["interface_submodel_part_destination"].SetString(self.model_part)
         # for node in self.ContouringModelPart.GetSubModelPart(self.model_part).Nodes:
         interface_mapper = KratosMapping.MapperFactory.CreateMapper(self.Geoprocessing_raster, self.ContouringModelPart, mapper_project_parameters)
         interface_mapper.Map(KratosMultiphysics.MESH_DISPLACEMENT_Z, KratosMultiphysics.MESH_DISPLACEMENT_Z)
@@ -151,9 +152,10 @@ class TerrainElevationFromRaster():
             Elevation= node.GetSolutionStepValue(KratosMultiphysics.MESH_DISPLACEMENT_Z)
             node.Z0=Elevation
             node.Z=Elevation
-    
-    
-        gid_output = GiDOutputProcess(self.ContouringModelPart.GetSubModelPart(self.model_part), 
+
+        file_name = self._file_name+"_2delevated"
+        KratosMultiphysics.ModelPartIO(self._file_name, KratosMultiphysics.IO.WRITE).WriteModelPart(self.ContouringModelPart.GetSubModelPart(self.model_part))
+        gid_output = GiDOutputProcess(self.ContouringModelPart.GetSubModelPart(self.model_part),
                                             "mallagidmappero",
                                             KratosMultiphysics.Parameters("""
                                                 {
@@ -180,11 +182,11 @@ class TerrainElevationFromRaster():
                                                 }
                                                 """)
                                             )
-            
+
         gid_output.ExecuteInitialize()
         gid_output.ExecuteBeforeSolutionLoop()
         gid_output.ExecuteInitializeSolutionStep()
         gid_output.PrintOutput()
         gid_output.ExecuteFinalizeSolutionStep()
         gid_output.ExecuteFinalize()
-  
+

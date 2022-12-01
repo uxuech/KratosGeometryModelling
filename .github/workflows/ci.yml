@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - master
+
+# for cancelling redundant runs
+concurrency:
+  group: ci-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Dependencies
+      shell: bash
+      run: |
+        python3 -m pip install KratosMultiphysics KratosMeshMovingApplication KratosMappingApplication pyshp meshio gmsh
+        sudo apt-get -y install libglu1
+
+    - name: Run Cube Test
+      shell: bash
+      run: |
+        export PYTHONPATH=${PYTHONPATH}:${GITHUB_WORKSPACE}
+        cp ${GITHUB_WORKSPACE}/MainMeshGenerationKratos.py ${GITHUB_WORKSPACE}/Examples/cube_test/MainMeshGenerationKratos.py
+        cd ${GITHUB_WORKSPACE}/Examples/cube_test/
+        python3 MainMeshGenerationKratos.py

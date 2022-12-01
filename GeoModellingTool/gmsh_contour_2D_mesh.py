@@ -3,9 +3,14 @@ import gmsh
 import sys
 import meshio
 import os
+linesIdsFloor=[]
+supernodeIds=[]
 # --- Meshing study area according to input user colors
+physicalgroupname=[]
+nodesIds6=[]
 class GmshContour2dMeshGenerator():
     def __init__(self,settings,BoundaryNames,Polylines):
+        print("constructor")
         self._boundary_name = BoundaryNames
         self.contour_polylines = Polylines
         self.mesh_size=settings["mesh_size"].GetDouble()
@@ -16,29 +21,37 @@ class GmshContour2dMeshGenerator():
         gmsh.initialize(sys.argv)
         gmsh.model.add("Volumemesh")
         
+
+
     def __GmshGeometryGeneration(self):       
         linesIdsFloor=[]
-        physicalgroupname=[]
         for bound in self._boundary_name:
             nodesIds=[]
+            
             for point in self.contour_polylines[bound]:
+                
                 node=gmsh.model.geo.addPoint(point[0],point[1],0,self.mesh_size)
                 nodesIds.append(node)
+            
             line=gmsh.model.geo.addSpline(nodesIds)
             linesIdsFloor.append(line)
             gmsh.model.geo.synchronize()
-            lineId=gmsh.model.addPhysicalGroup(1,[line])           
+            lineId=gmsh.model.addPhysicalGroup(1,[line])  
+      
             gmsh.model.setPhysicalName(2, lineId, bound)
+            
             physicalgroupname.append(lineId)
-
+        
         gmsh.model.geo.removeAllDuplicates()
         gmsh.model.geo.addCurveLoop(linesIdsFloor)
         gmsh.model.geo.synchronize()
         floor=gmsh.model.geo.addPlaneSurface([1])
         gmsh.model.geo.synchronize()
-        g=gmsh.model.addPhysicalGroup(2,[floor])
-        physicalgroupname.append(g)
-        gmsh.model.setPhysicalName(2, g, "floorsurf")       
+        self.floor_physical_group=gmsh.model.addPhysicalGroup(2,[floor])
+        physicalgroupname.append(self.floor_physical_group)
+        gmsh.model.setPhysicalName(2, self.floor_physical_group, "floorsurf")       
+    def GetActivitatioLevelFloor(self):
+        return self.floor_physical_group
 
     def __Gmsh2dMesh(self):
         # TODO: THIS FUNCTION SHOULD BE GENERAL FOR 2D 3D AND A NEW SIZE SHOULD BE ASKED HOW CAN WE RELEATE??
@@ -55,9 +68,7 @@ class GmshContour2dMeshGenerator():
         for e in gmsh.model.getEntities():
 
             if e[0]==1:
-
                 NodesBoundaryId=gmsh.model.mesh.getNodes(e[0], e[1],includeBoundary=True)
-
                 ExternalPoints=gmsh.model.getBoundary([e],oriented = False)
                 InitialPoint=ExternalPoints[0]
                 FinalPoint=ExternalPoints[1]
@@ -73,12 +84,11 @@ class GmshContour2dMeshGenerator():
 
     def GetTotalBoundariesName(self):
         return self.total_boundaries_name
-
     def GetTotalNodesBoundaryId(self):
         return self.total_nodes_boundary_id
-
     def GetTotalExternalPoints(self):
         return self.total_external_points
+
 
     def __GmshMdpaToKratos(self):
         # TODO: with different files typs vtk mdpa

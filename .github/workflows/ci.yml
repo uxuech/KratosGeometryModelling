@@ -24,7 +24,7 @@ jobs:
       shell: bash
       run: |
         python3 -m pip install KratosMultiphysics KratosMeshMovingApplication KratosMeshingApplication pyshp meshio gmsh
-        apt-get -y install libglu1
+        sudo apt-get -y install libglu1
 
     - name: Setting Environment
       shell: bash

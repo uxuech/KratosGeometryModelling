@@ -34,4 +34,5 @@ jobs:
       shell: bash
       run: |
         cp ${GITHUB_WORKSPACE}/MainMeshGenerationKratos.py ${GITHUB_WORKSPACE}/Examples/cube_test/MainMeshGenerationKratos.py
+        cd ${GITHUB_WORKSPACE}/Examples/cube_test/
         python3 MainMeshGenerationKratos.py

@@ -2,7 +2,8 @@ name: CI
 
 on:
   pull_request:
-    types: [opened, reopened]
+    branches:
+      - master
 
 # for cancelling redundant runs
 concurrency:
@@ -21,7 +22,9 @@ jobs:
 
     - name: Dependencies
       shell: bash
-      run: python3 -m pip install KratosMultiphysics KratosMeshMovingApplication KratosMeshingApplication pyshp meshio gmsh
+      run: |
+        python3 -m pip install KratosMultiphysics KratosMeshMovingApplication KratosMeshingApplication pyshp meshio gmsh
+        apt-get -y install libglu1
 
     - name: Setting Environment
       shell: bash

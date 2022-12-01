@@ -23,7 +23,7 @@ jobs:
     - name: Dependencies
       shell: bash
       run: |
-        python3 -m pip install KratosMultiphysics KratosMeshMovingApplication KratosMeshingApplication pyshp meshio gmsh
+        python3 -m pip install KratosMultiphysics KratosMeshMovingApplication KratosMappingApplication pyshp meshio gmsh
         sudo apt-get -y install libglu1
 
     - name: Setting Environment

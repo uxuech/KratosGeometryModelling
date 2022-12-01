@@ -21,7 +21,7 @@ jobs:
 
     - name: Dependencies
       shell: bash
-      run: python3 KratosMultiphysics KratosMeshMovingApplication KratosMeshingApplication
+      run: python3 -m pip install KratosMultiphysics KratosMeshMovingApplication KratosMeshingApplication pyshp meshio gmsh
 
     - name: Setting Environment
       shell: bash

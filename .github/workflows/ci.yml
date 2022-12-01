@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+# for cancelling redundant runs
+concurrency:
+  group: ci-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Dependencies
+      shell: bash
+      run: python3 KratosMultiphysics KratosMeshMovingApplication KratosMeshingApplication
+
+    - name: Setting Environment
+      shell: bash
+      run: export PYTHONPATH=${PYTHONPATH}:${GITHUB_WORKSPACE}
+
+    - name: Run Cube Test
+      shell: bash
+      run: |
+        cp ${GITHUB_WORKSPACE}/MainMeshGenerationKratos.py ${GITHUB_WORKSPACE}/Examples/cube_test/MainMeshGenerationKratos.py
+        python3 MainMeshGenerationKratos.py
